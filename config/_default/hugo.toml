@@ -1,0 +1,27 @@
+baseURL      = "https://csliubo.com/"
+languageCode = "en-us"
+title        = "Liu Bo"
+
+# Theme
+theme = "hugo-theme-stack"
+
+# Support CJK (Chinese/Japanese/Korean) - keep for mixed content
+hasCJKLanguage = true
+
+# Default content language
+defaultContentLanguage = "en"
+
+[pagination]
+    pagerSize = 10
+
+[permalinks]
+    post = "/p/:slug/"
+    page = "/:slug/"
+
+# Syntax highlighting
+[markup]
+    [markup.highlight]
+        lineNos = true
+        style = "dracula"
+    [markup.goldmark.renderer]
+        unsafe = true

@@ -1,0 +1,42 @@
+mainSections   = ["post"]
+rssFullContent = true
+
+[footer]
+    since = 2026
+
+[sidebar]
+    emoji    = ""
+    subtitle = "Tech Director | Cloud Native | Observability | LLM Applications"
+    avatar   = "img/avatar.png"
+
+[article]
+    math = false
+    toc = true
+    readingTime = true
+    [article.license]
+        enabled = true
+        default = "Licensed under CC BY-NC-SA 4.0"
+
+[widgets]
+    homepage = [
+        { type = "search" },
+        { type = "archives", params = { limit = 5 } },
+        { type = "categories", params = { limit = 10 } },
+        { type = "tag-cloud", params = { limit = 30 } },
+    ]
+    page = [{ type = "toc" }]
+
+[colorScheme]
+    toggle = true
+    default = "auto"
+
+[comments]
+    enabled  = false
+
+[opengraph]
+    [opengraph.twitter]
+        site = ""
+        card = "summary_large_image"
+
+[defaultImage]
+    opengraph = "img/avatar.png"

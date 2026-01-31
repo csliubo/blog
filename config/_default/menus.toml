@@ -1,0 +1,29 @@
+[[main]]
+    identifier = "home"
+    name = "Home"
+    url = "/"
+    weight = 1
+
+[[main]]
+    identifier = "archives"
+    name = "Archives"
+    url = "/archives/"
+    weight = 2
+
+[[main]]
+    identifier = "search"
+    name = "Search"
+    url = "/search/"
+    weight = 3
+
+[[social]]
+    identifier = "github"
+    name = "GitHub"
+    url = "https://github.com/csliubo"
+    weight = 1
+
+[[social]]
+    identifier = "twitter"
+    name = "Twitter"
+    url = "https://twitter.com/"
+    weight = 2
