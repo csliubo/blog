@@ -12,7 +12,7 @@ menu:
 
 A backend engineer working at a small company in China.
 
-Nothing fancy here — just years of hands-on experience with Java, Spring Boot, Kubernetes, and the usual suspects. I've spent a lot of time debugging production issues, sometimes at 3 AM.
+Nothing fancy here — just years of hands-on experience with Java, Spring Boot, Kubernetes, and the usual suspects.
 
 ### What You'll Find Here
 
