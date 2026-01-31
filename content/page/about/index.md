@@ -10,19 +10,21 @@ menu:
 
 ## Liu Bo
 
-Tech Director based in China, focusing on building reliable and observable systems at scale.
+A backend engineer working at a small company in China.
 
-### What I Do
+Nothing fancy here — just years of hands-on experience with Java, Spring Boot, Kubernetes, and the usual suspects. I've spent a lot of time debugging production issues, sometimes at 3 AM.
 
-- **Cloud Native Infrastructure** — Kubernetes, service mesh, platform engineering
-- **Observability** — Metrics, tracing, logging, and making sense of production
-- **LLM Applications** — Bringing AI capabilities into real-world workflows
+### What You'll Find Here
 
-### Why This Blog
+- **Production war stories** — Real incidents, real fixes, real lessons
+- **Backend development notes** — Things I wish I knew earlier
+- **Occasional deep dives** — When a rabbit hole turns out to be interesting
 
-I've been solving production problems for years. Some lessons were learned the hard way.
+### Why Write
 
-If these experiences can help someone avoid the same pitfalls, that's a win.
+Most problems I encounter aren't new. Someone else has solved them before. But finding that solution isn't always easy.
+
+If my notes save someone a few hours of debugging, that's good enough.
 
 ### Connect
 
