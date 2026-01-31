@@ -26,6 +26,3 @@ Most problems I encounter aren't new. Someone else has solved them before. But f
 
 If my notes save someone a few hours of debugging, that's good enough.
 
-### Connect
-
-- GitHub: [csliubo](https://github.com/csliubo)
