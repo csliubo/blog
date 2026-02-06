@@ -295,10 +295,15 @@ The source: Hutool's `GlobalHeaders` class:
 ```java
 // cn.hutool.http.GlobalHeaders
 public GlobalHeaders putDefault(boolean isReset) {
+    // 解决HttpURLConnection中无法自定义Host等头信息的问题
+    // (Solves the problem that HttpURLConnection cannot customize
+    //  Host and other header information)
     System.setProperty("sun.net.http.allowRestrictedHeaders", "true");
     // ...
 }
 ```
+
+Hutool's intent is legitimate—it enables setting custom `Host` headers for HTTP clients. But disabling JDK's protection has unintended side effects when combined with other buggy libraries.
 
 ---
 
@@ -399,6 +404,8 @@ This stems from CVE-2010-3573, a security vulnerability from 2010. Malicious App
 
 *References:*
 - [RFC 7230 Section 3.3.2 - Content-Length](https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.2)
-- [Feign PR #2275 - Fix duplicate Content-Length](https://github.com/OpenFeign/feign/pull/2275)
+- [Feign Issue #1721 - Accept-Encoding header added twice](https://github.com/OpenFeign/feign/issues/1721)
+- [Feign PR #2336 - Fix Content-Length duplicate](https://github.com/OpenFeign/feign/pull/2336)
+- [Hutool GlobalHeaders.java](https://github.com/dromara/hutool/blob/v5-master/hutool-http/src/main/java/cn/hutool/http/GlobalHeaders.java)
 - [JDK HttpURLConnection source](https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/sun/net/www/protocol/http/HttpURLConnection.java)
 - [CVE-2010-3573](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2010-3573)
