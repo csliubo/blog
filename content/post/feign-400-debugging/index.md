@@ -48,7 +48,8 @@ Using tcpdump to capture the failing request:
 
 ```bash
 # Capture HTTP traffic on port 8080, show ASCII payload
-tcpdump -i eth0 -A -s 0 'tcp port 8080 and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)'
+tcpdump -i eth0 -A -s 0 \
+  'tcp port 8080 and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)'
 ```
 
 Found duplicate `Content-Length` headers:
@@ -304,45 +305,38 @@ public GlobalHeaders putDefault(boolean isReset) {
 ## The Complete Causal Chain
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         JVM Startup                              │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-              ┌───────────────────────────────────┐
-              │   Class Loading Order (uncertain)  │
-              └───────────────────────────────────┘
-                     /                    \
-                    /                      \
-                   ▼                        ▼
-        ┌─────────────────┐        ┌─────────────────┐
-        │ Hutool loads    │        │ JDK loads       │
-        │ first           │        │ first           │
-        └─────────────────┘        └─────────────────┘
-                │                          │
-                ▼                          ▼
-        GlobalHeaders sets          HttpURLConnection
-        allowRestrictedHeaders      loads, reads property
-              = true                    = false
-                │                          │
-                ▼                          ▼
-        HttpURLConnection           Hutool sets property
-        loads, reads property       (too late)
-              = true                       │
-                │                          ▼
-                ▼                   allowRestrictedHeaders
-        Protection OFF                   = false
-                │                          │
-                ▼                          ▼
-        Content-Length              Content-Length
-        not filtered                filtered
-                │                          │
-                ▼                          ▼
-        Feign bug exposed           Feign bug masked
-        Duplicate headers           JDK sets header
-                │                          │
-                ▼                          ▼
-           400 Error                    Success
+              JVM Startup
+                  │
+                  ▼
+        Class Loading Order
+            (uncertain)
+             /        \
+            /          \
+           ▼            ▼
+    ┌──────────┐  ┌──────────┐
+    │ Hutool   │  │ JDK      │
+    │ first    │  │ first    │
+    └──────────┘  └──────────┘
+         │              │
+         ▼              ▼
+    GlobalHeaders  HttpURLConnection
+    sets property  loads, reads
+      = true         = false
+         │              │
+         ▼              ▼
+    HttpURLCon.    Hutool sets
+    reads = true   (too late)
+         │              │
+         ▼              ▼
+    Protection     Protection
+       OFF            ON
+         │              │
+         ▼              ▼
+    Feign bug      Feign bug
+     exposed        masked
+         │              │
+         ▼              ▼
+    400 Error       Success
 ```
 
 **The behavior pattern**:
