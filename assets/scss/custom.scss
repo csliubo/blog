@@ -1,0 +1,6 @@
+/* Hide right sidebar (TOC) on article pages — give more space to content */
+body.article-page {
+    .right-sidebar {
+        display: none;
+    }
+}
