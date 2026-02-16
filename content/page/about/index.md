@@ -10,19 +10,18 @@ menu:
 
 ## Liu Bo
 
-A backend engineer working at a small company in China.
+A backend-first engineer based in China.
 
-Nothing fancy here — just years of hands-on experience with Java, Spring Boot, Kubernetes, and the usual suspects.
+I focus on Java/Spring backend systems, production debugging, and reliability — with experience spanning from mobile features to DevOps tooling.
 
 ### What You'll Find Here
 
-- **Production war stories** — Real incidents, real fixes, real lessons
-- **Backend development notes** — Things I wish I knew earlier
-- **Occasional deep dives** — When a rabbit hole turns out to be interesting
+- **Production incident write-ups** — What broke, why it broke, and how it was fixed
+- **Backend and reliability notes** — Patterns, pitfalls, and trade-offs from real systems
+- **AI tooling experiments** — Practical ways to improve engineering workflow
 
 ### Why Write
 
-Most problems I encounter aren't new. Someone else has solved them before. But finding that solution isn't always easy.
+Most engineering problems aren't new, but useful context is often scattered.
 
-If my notes save someone a few hours of debugging, that's good enough.
-
+If these notes save someone a few hours of debugging, that's good enough.
