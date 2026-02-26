@@ -55,7 +55,7 @@ Found it in `application.yml`:
 
 ```yaml
 mybatis-plus:
-  type-handlers-package: com.baomidou.mybatisplus.extension.handlers,com.hmc.common.ext.mybatis
+  type-handlers-package: com.baomidou.mybatisplus.extension.handlers,com.example.common.mybatis
 ```
 
 The second package is ours — custom TypeHandlers for JSON fields. But the first package, `com.baomidou.mybatisplus.extension.handlers`, is MyBatis-Plus's built-in handler package. Someone had added it early in the project to make JSON TypeHandlers work globally. That package contains `FastjsonTypeHandler`:
@@ -78,10 +78,10 @@ The obvious next step: remove `com.baomidou.mybatisplus.extension.handlers` from
 
 ```yaml
 # Before
-type-handlers-package: com.baomidou.mybatisplus.extension.handlers,com.hmc.common.ext.mybatis
+type-handlers-package: com.baomidou.mybatisplus.extension.handlers,com.example.common.mybatis
 
 # After
-type-handlers-package: com.hmc.common.ext.mybatis
+type-handlers-package: com.example.common.mybatis
 ```
 
 I applied the change and restarted.
@@ -193,7 +193,7 @@ The solution has two parts:
 ```yaml
 mybatis-plus:
   # Only scan our own TypeHandler package
-  type-handlers-package: com.hmc.common.ext.mybatis
+  type-handlers-package: com.example.common.mybatis
 ```
 
 **2. Fix the implicit dependencies:**
@@ -206,7 +206,7 @@ For every XML ResultMap that relied on globally registered TypeHandlers, explici
 
 <!-- After: explicit TypeHandler -->
 <result column="hot_words" property="hotWords"
-        typeHandler="com.hmc.common.ext.mybatis.JsonListStringHandler"/>
+        typeHandler="com.example.common.mybatis.JsonListStringHandler"/>
 ```
 
 For entities using `@TableField(typeHandler=...)`, ensure `@TableName(autoResultMap = true)` is present — this tells MP to generate a ResultMap that carries the TypeHandler into queries, not just inserts and updates. (See [Going Deeper](#going-deeper-why-autoresultmap-defaults-to-false) for why this isn't the default.)
