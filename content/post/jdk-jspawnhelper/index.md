@@ -32,7 +32,7 @@ CREATE TABLE test_table (...);
 -- Hangs indefinitely
 ```
 
-The DDL hung in the MySQL client too. **Not a Flink issue—Doris FE was the problem.**
+The DDL hung in the MySQL client too. **Doris FE was the problem**, not Flink.
 
 ### Step 2: Check Doris FE
 
@@ -81,7 +81,7 @@ I thought I found the root cause. But I was wrong.
 
 ## The Plot Twist
 
-After restarting Doris FE (which picked up the new JDK version), the `jspawnhelper` errors disappeared. But here's the thing:
+After restarting Doris FE (which picked up the new JDK version), the `jspawnhelper` errors disappeared.
 
 **The two issues are unrelated.**
 
@@ -89,7 +89,7 @@ To verify, I ran Doris FE with the mismatched `jspawnhelper` version for an exte
 
 The original DDL hang had a different root cause—one we never identified. The `jspawnhelper` failure was a separate issue I stumbled upon during the investigation.
 
-But the investigation wasn't wasted. The `jspawnhelper` discovery led me down a fascinating rabbit hole about JDK internals that's worth sharing.
+But the investigation wasn't wasted. The `jspawnhelper` discovery revealed an interesting JDK mechanism worth sharing.
 
 ## What is jspawnhelper?
 
@@ -134,7 +134,7 @@ hlpargs[2] = buf1;            // File descriptors
 hlpargs[3] = NULL;
 ```
 
-When the system JDK gets upgraded, the `jspawnhelper` binary is replaced with a new version containing a different `VERSION_STRING`. But the running JVM still passes the old version → **mismatch → exit(1)**.
+When the system JDK gets upgraded, the `jspawnhelper` binary is replaced with a new version containing a different `VERSION_STRING`. But the running JVM still passes the old version — mismatch, exit(1).
 
 ## The Backport Discovery
 
@@ -154,45 +154,32 @@ The version check was **backported** to JDK 17u after 17.0.12:
 
 This is actually good design—fail fast is better than silent corruption. But it means minor JDK upgrades can now break running Java applications in ways they couldn't before.
 
-## What We Learned
-
-**About jspawnhelper:**
-- JDK was upgraded from 17.0.16 to 17.0.17 while Doris FE was running
-- `jspawnhelper` was failing with exit code 1 due to version mismatch
-- Any `Runtime.exec()` call would fail silently (no subprocess output)
-- The version check mechanism was backported in JDK-8325621
-
-**About the DDL hang:**
-- Root cause remains unknown
-- Verified to be unrelated to jspawnhelper failure through extended testing
-- Sometimes bugs disappear without explanation—and that's frustrating but real
-
 ## Takeaways
 
 ### For Ops
 
-1. **Restart Java services after JDK upgrades**—don't assume minor versions are hot-swappable
-2. **Pin JDK versions**—disable auto-updates or use containers
-3. **VMs are riskier than containers**—container images lock versions; VMs get silent updates
+1. Restart Java services after JDK upgrades. Don't assume minor versions are hot-swappable.
+2. Pin JDK versions in production — disable auto-updates or use container images that lock the version.
+3. VMs are riskier than containers here: a VM's system JDK can be silently upgraded while the app is running.
 
 ### For Developers
 
-1. **Always use timeouts with ProcessBuilder**:
+1. Always use timeouts with `ProcessBuilder`:
    ```java
    boolean finished = process.waitFor(30, TimeUnit.SECONDS);
    if (!finished) {
        process.destroyForcibly();
    }
    ```
-2. **Handle subprocess failure gracefully**—the child process might never produce output
-3. **Log when spawning external processes**—it helps debugging when things go wrong
+2. Handle subprocess failure gracefully. The child process might never produce output.
+3. Log when spawning external processes — it helps when things go wrong.
 
 ### For Debugging
 
-1. When Java apps behave strangely after system updates, think about `jspawnhelper`
-2. `strace -f` is your friend—it shows what's happening at the syscall level
-3. Sometimes you find a real bug while chasing a different problem
-4. **Document what you don't know**—future you will thank you
+1. When Java apps behave strangely after system updates, think about `jspawnhelper`.
+2. `strace -f` shows what's happening at the syscall level — use it when logs don't help.
+3. Sometimes you find a real bug while chasing a different problem.
+4. Document what you don't know. Future you will thank you.
 
 ---
 

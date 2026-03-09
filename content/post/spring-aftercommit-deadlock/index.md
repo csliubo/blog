@@ -43,7 +43,7 @@ We took jstack from both pods. The difference was immediate:
 | Threads waiting for DB connection | **61** | **0** |
 | BLOCKED threads | 0 | 0 |
 
-**BLOCKED = 0** ruled out lock contention. This wasn't threads fighting over a monitor — it was resource exhaustion. 61 threads all WAITING on Druid's connection pool `notEmpty` condition, meaning every connection was checked out and nobody was returning one.
+**BLOCKED = 0** ruled out lock contention. All 61 threads were WAITING on Druid's connection pool `notEmpty` condition, meaning every connection was checked out and nobody was returning one.
 
 ---
 
@@ -377,17 +377,17 @@ If these don't improve together, the bottleneck moved rather than disappeared.
 
 ## Takeaways
 
-1. **"Restart first" destroys evidence.** Take a thread dump and connection pool snapshot before you restart. You might not get a second chance — we got lucky that one pod stayed stuck.
+1. "Restart first" destroys evidence. Take a thread dump and connection pool snapshot before you restart. You might not get a second chance — we got lucky that one pod stayed stuck.
 
-2. **Spring releases connections in `cleanupAfterCompletion()`**, not at `commit()`. Everything between is a danger zone.
+2. Spring releases connections in `cleanupAfterCompletion()`, not at `commit()`. Everything between `doCommit()` and `cleanupAfterCompletion()` is a danger zone where the transaction is committed but the connection is still thread-bound.
 
-3. **REQUIRED in AFTER_COMMIT doesn't deadlock — it does something worse.** It "joins" a committed transaction where rollback silently fails and data commits through an `autoCommit` side effect. Spring 6.1 now blocks this at startup ([#30679](https://github.com/spring-projects/spring-framework/issues/30679)).
+3. REQUIRED in AFTER_COMMIT doesn't deadlock, but it does something worse: it "joins" a committed transaction where rollback silently fails and data commits through an `autoCommit` side effect. Spring 6.1 now blocks this at startup ([#30679](https://github.com/spring-projects/spring-framework/issues/30679)).
 
-4. **`CallerRunsPolicy` can reintroduce the exact problem you're solving.** Always ask "who is the caller?" before choosing a rejection policy.
+4. `CallerRunsPolicy` can reintroduce the exact problem you're solving. Always ask "who is the caller?" before choosing a rejection policy.
 
-5. **`@TransactionalEventListener(AFTER_COMMIT)` + `@Transactional(REQUIRES_NEW)` is the only combination with correct transaction semantics — but it starves the connection pool without `@Async`.** You can't fix this at the propagation level; you need thread isolation or a different architecture (outbox, same-TX direct call).
+5. `@TransactionalEventListener(AFTER_COMMIT)` + `@Transactional(REQUIRES_NEW)` is the only combination with correct transaction semantics, but it starves the connection pool without `@Async`. You can't fix this at the propagation level; you need thread isolation or a different architecture (outbox, same-TX direct call).
 
-6. **Monitor `jdbc.connections.active`.** Connection pool exhaustion is silent — health probes pass, the JVM is fine, but the service is dead.
+6. Monitor `jdbc.connections.active`. Connection pool exhaustion is silent: health probes pass, the JVM is fine, but the service is dead.
 
 ---
 

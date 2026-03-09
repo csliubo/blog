@@ -139,7 +139,7 @@ The second `if` should be `else if`. This causes `Content-Length` to be added tw
 
 Fixed in Feign 13.3 (changed to `else if`).
 
-**But wait**: If this bug exists in the code, why doesn't it trigger every time?
+If this bug exists in the code, why doesn't it trigger every time?
 
 ---
 
@@ -354,12 +354,7 @@ Hutool's intent is legitimate—it enables setting custom `Host` headers for HTT
 
 ## Why Does Class Loading Order Vary?
 
-Class loading is triggered by first use. The order depends on:
-
-- **Which code path executes first** during startup
-- **Thread scheduling** in multi-threaded initialization
-- **Spring bean initialization order**
-- **Lazy vs eager loading** of dependencies
+Class loading is triggered by first use. The order depends on which code path executes first during startup, thread scheduling in multi-threaded initialization, Spring bean initialization order, and whether dependencies are loaded lazily or eagerly.
 
 Even the same code can have different initialization orders across JVM restarts. A small change in bean dependencies or startup timing can flip the order.
 
@@ -394,11 +389,11 @@ This stems from CVE-2010-3573, a security vulnerability from 2010. Malicious App
 
 ## Debugging Takeaways
 
-1. **"Fixed after restart" is not the end** → Preserve the scene, find the root cause
-2. **HTTP layer issues** → tcpdump is your friend
-3. **Multi-layer problems** → Peel back layers: Feign → JDK → System property → Third-party lib
-4. **static final trap** → Value is set at class load time, immutable afterward
-5. **Tracing property sources** → Property Hook is an effective technique
+1. "Fixed after restart" is not the end. Preserve the scene, find the root cause.
+2. For HTTP layer issues, tcpdump is your friend.
+3. Multi-layer problems require peeling back layers: Feign, JDK, system property, third-party lib.
+4. `static final` values are set at class load time and immutable afterward. If behavior flips across restarts, suspect initialization order.
+5. When you need to trace a system property's origin, a Property Hook (`System.setProperties` with a tracing wrapper) is an effective technique.
 
 ---
 
