@@ -281,10 +281,10 @@ Monitor upload extensions: any `.html` or `.js` file appearing in a bucket that 
 
 ## Takeaway
 
-1. **"Private write" does not mean secure.** As long as you have an upload API that hands out credentials, and those credentials are unrestricted, attackers can upload anything.
+1. "Private write" does not mean secure. As long as you have an upload API that hands out credentials, and those credentials are unrestricted, attackers can upload anything.
 
-2. **An unguarded bucket gets found by multiple parties independently.** We initially assumed one attacker iterating over 15 months. The evidence showed at least four independent groups — different domains, different techniques, different hijacked sessions — all exploiting the same unrestricted upload API. This was not a targeted attack. It was an open door that kept getting discovered. Your domain reputation was funding all of them.
+2. An unguarded bucket gets found by multiple parties independently. We initially assumed one attacker iterating over 15 months. The evidence showed at least four independent groups — different domains, different techniques, different hijacked sessions — all exploiting the same unrestricted upload API. This was not a targeted attack. It was an open door that kept getting discovered. Your domain reputation was funding all of them.
 
-3. **Do not rely on your cloud provider's security scanner.** 47 files, 15 months, 1 detection. When they finally flagged one, they classified it as "pornographic content" because the dynamic redirect happened to be pointing at porn that day. They missed that it was a general-purpose traffic distribution platform. Signature-based scanning cannot keep up with server-controlled dynamic payloads. Run your own scans.
+3. Do not rely on your cloud provider's security scanner. 47 files, 15 months, 1 detection. When they finally flagged one, they classified it as "pornographic content" because the dynamic redirect happened to be pointing at porn that day. They missed that it was a general-purpose traffic distribution platform. Signature-based scanning cannot keep up with server-controlled dynamic payloads. Run your own scans.
 
-4. **Add Content-Type to your pre-signed URL signature or STS policy condition.** This single change blocks the entire attack vector. If your upload API does not restrict file types today, fix it now — it takes one line in the signing config.
+4. Add `Content-Type` to your pre-signed URL signature or STS policy condition. This single change blocks the entire attack vector. If your upload API does not restrict file types today, fix it now — it takes one line in the signing config.
